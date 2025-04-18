@@ -1,49 +1,48 @@
-//your JS code here. If required.
 const input = document.getElementById("typeahead");
 const suggestionsList = document.getElementById("suggestions-list");
 
-let timeoutId;
+let debounceTimeout;
 
-// Debounced input handler
+// Listen for input changes
 input.addEventListener("input", () => {
-  // Clear previous timer
-  clearTimeout(timeoutId);
+  clearTimeout(debounceTimeout); // clear previous timeout
 
-  // Debounce logic - wait 500ms after typing stops
-  timeoutId = setTimeout(async () => {
+  debounceTimeout = setTimeout(() => {
     const query = input.value.trim();
 
-    // If input is empty, clear suggestions and stop
+    // If input is empty, clear suggestions and skip fetch
     if (query === "") {
       clearSuggestions();
       return;
     }
 
-    try {
-      const response = await fetch(`https://api.frontendexpert.io/api/fe/glossary-suggestions?text=${encodeURIComponent(query)}`);
-      const suggestions = await response.json();
+    // Fetch suggestions from the API
+    fetch(`https://api.frontendexpert.io/api/fe/glossary-suggestions?text=${encodeURIComponent(query)}`)
+      .then(response => response.json())
+      .then(suggestions => {
+        updateSuggestions(suggestions);
+      })
+      .catch(error => {
+        console.error("Failed to fetch suggestions:", error);
+      });
 
-      updateSuggestions(suggestions);
-    } catch (error) {
-      console.error("Error fetching suggestions:", error);
-    }
-  }, 500);
+  }, 500); // 500ms debounce delay
 });
 
-// Clear suggestions list
+// Clears current suggestions
 function clearSuggestions() {
   suggestionsList.innerHTML = "";
 }
 
-// Add suggestions to the list
+// Updates suggestion list
 function updateSuggestions(suggestions) {
   clearSuggestions();
 
-  suggestions.forEach((term) => {
+  suggestions.forEach(term => {
     const li = document.createElement("li");
     li.textContent = term;
 
-    // When user clicks a suggestion
+    // On click: fill input and clear suggestions
     li.addEventListener("click", () => {
       input.value = term;
       clearSuggestions();
